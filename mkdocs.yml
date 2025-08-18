@@ -1,0 +1,52 @@
+site_name: senkin-tmp-cite-pred
+repo_url: https://github.com/lueckenlab/senkin-tmp-cite-pred
+site_url: https://VladimirShitov.github.io/senkin-tmp-cite-pred
+site_description: project_description [This is a template repository for Python projects that use uv for their dependency management.]: Reimplementation of the model for CITE-seq data prediction from transcriptomics, which won OpenProblems 2022 competition in CITE-seq tassk
+site_author: Vladimir Shitov
+edit_uri: edit/main/docs/
+repo_name: VladimirShitov/senkin-tmp-cite-pred
+copyright: Maintained by <a href="https://github.com/VladimirShitov">VladimirShitov</a>.
+
+nav:
+  - Home: index.md
+  - Modules: modules.md
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["senkin_tmp_cite_pred"]
+theme:
+  name: material
+  feature:
+    tabs: true
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: white
+      accent: deep orange
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: black
+      accent: deep orange
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  icon:
+    repo: fontawesome/brands/github
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/lueckenlab/senkin-tmp-cite-pred
+    - icon: fontawesome/brands/python
+      link: https://pypi.org/project/senkin-tmp-cite-pred
+
+markdown_extensions:
+  - toc:
+      permalink: true
+  - pymdownx.arithmatex:
+      generic: true
