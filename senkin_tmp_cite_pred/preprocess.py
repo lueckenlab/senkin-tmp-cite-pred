@@ -203,6 +203,12 @@ def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str
     
     logger.info("Starting RNA preprocessing")
 
+    # This is the transformation used in the competition.
+    # Interestingly, it is not used by Senkin13 in his approach
+    logger.info("Normalization and log1p-transformation")
+    adata_rna.obsm["X_log_normalized"] = sc.pp.normalize_total(adata_rna, target_sum=None, inplace=False)["X"]
+    sc.pp.log1p(adata_rna, obsm="X_log_normalized")
+
     logger.info("Removing constant variables")
     adata_rna = remove_constant_vars(adata_rna)
 
