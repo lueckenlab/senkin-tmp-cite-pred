@@ -137,7 +137,7 @@ def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor",
         List of top correlated genes. Names are taken from `adata_rna.var_names`.
     """
 
-    prot_row_scaled = adata_prot.X
+    prot_row_scaled = adata_prot.layers["dsb"]
     if not isinstance(prot_row_scaled, np.ndarray):
         prot_row_scaled = prot_row_scaled.toarray()
     prot_row_scaled = (prot_row_scaled - prot_row_scaled.mean(axis=1).reshape(-1, 1)) / prot_row_scaled.std(axis=1).reshape(-1, 1)
@@ -162,9 +162,9 @@ def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor",
 
     return list(top_corr_genes)
 
-def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str = "donor", known_features: list = None):
+def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8), batch_key: str = "day", group_key: str = "donor", known_features: list = None):
     """
-    Preprocess RNA data using senkin13 approach.
+    Preprocess data using senkin13 approach for RNA and basic preprocessing for protein data.
 
     Original notebook: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/preprocess_cite.ipynb
 
@@ -179,10 +179,11 @@ def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str
 
     Parameters
     ----------
-    adata_rna : AnnData
-        RNA data to process. Must contain raw counts in .X layer.
-    adata_prot : AnnData
-        Protein data used for feature selection
+    mdata : MuData
+        Data to process. Must contain modalities "rna" and "prot" with raw counts in .X.
+    empty_counts_range : tuple[float, float], optional
+        Range of empty counts to use for DSB transformation. In the OpenProblems 2022 competition, it was (1.5, 2.8),
+        but this is data-dependent, so make sure to double check what makes sense for your data!
     batch_key : str, optional
         Key to correct for batch effects in the custom normalization. In the original notebook, it was "day".
     group_key : str, optional
@@ -200,6 +201,16 @@ def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str
         - X_raw_selected: Raw data with correlated and selected features
     """
     logger = logging.getLogger(__name__)
+
+    logger.info("DSB-normalizing protein data. The number of cells will be reduced.")
+    logger.debug(f"Number of cells before DSB: {mdata.shape[0]}")
+    mdata = pt.pp.dsb(
+        mdata, add_layer=True, empty_counts_range=empty_counts_range, cell_counts_range=(empty_counts_range[1], np.inf)
+    )
+    adata_rna = mdata.mod["rna"]
+    adata_prot = mdata.mod["prot"]
+
+    logger.debug(f"Number of cells after DSB: {mdata.shape[0]}")
     
     logger.info("Starting RNA preprocessing")
 
@@ -240,4 +251,4 @@ def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str
     adata_rna.obsm["X_raw_selected"] = adata_rna[:, selected_features].X
     logger.info("RNA preprocessing completed")
 
-    return adata_rna
+    return mdata
