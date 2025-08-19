@@ -166,7 +166,9 @@ def preprocess_rna(adata_rna, adata_prot, batch_key: str = "day", group_key: str
     """
     Preprocess RNA data using senkin13 approach.
 
-    This includes:
+    Original notebook: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/preprocess_cite.ipynb
+
+    It includes:
     - Removal of constant features
     - 200 components TSVD of CLR-transformed data
     - 100 components PCA of customly normalized data (see documentation of `senkin_normalize` for details)
