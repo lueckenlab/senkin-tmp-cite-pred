@@ -178,7 +178,6 @@ def get_lgbm_predictions(train_cite_X, train_cite_y, test_cite_X, folds, params,
 
     lgbm_predictions = np.concatenate([train_preds, test_preds], axis=0)
 
-    n_tsvd_components = min(n_tsvd_components, train_cite_y.shape[1] - 1)  # Make sure there are less components than features
     logger.info(f"TSVD-reducing predictions to {n_tsvd_components} components")
     tsvd = TruncatedSVD(n_components=n_tsvd_components, algorithm="arpack")
     lgbm_predictions_svd = tsvd.fit_transform(lgbm_predictions)
@@ -195,6 +194,16 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
     assert train_cell_ids.isin(adata_rna.obs_names).all(), "All train cell ids must be in the data"
     assert test_cell_ids.isin(adata_rna.obs_names).all(), "All test cell ids must be in the data"
 
+    # Create numerical indices for train and test cells to save info to the arrays in obsm correctly
+    train_indices = adata_rna.obs_names.get_indexer(train_cell_ids)
+    test_indices = adata_rna.obs_names.get_indexer(test_cell_ids)
+
+    n_tsvd_components = min(n_tsvd_components, adata_prot.shape[1] - 1)  # Make sure there are less components than features to prevent an error
+
+    logger.info("Initializing arrays in obsm with zeros")
+    for i in range(1, 5):
+        adata_rna.obsm[f"X_lgbm_{i}"] = np.zeros((adata_rna.shape[0], n_tsvd_components))
+
     logger.info("Training LightGBM models")
 
     # cite_lgb_transformed_sparse_matrix.ipynb
@@ -210,8 +219,8 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
         early_stopping_rounds=early_stopping_rounds,
     )
 
-    adata_rna[train_cell_ids].obsm["X_lgbm_1"] = lgbm_1_predictions[:len(train_cell_ids), :]
-    adata_rna[test_cell_ids].obsm["X_lgbm_1"] = lgbm_1_predictions[len(train_cell_ids):, :]
+    adata_rna.obsm["X_lgbm_1"][train_indices] = lgbm_1_predictions[:len(train_cell_ids), :]
+    adata_rna.obsm["X_lgbm_1"][test_indices] = lgbm_1_predictions[len(train_cell_ids):, :]
 
     # cite_lgb_raw_clr_pca.ipynb
     logger.info("Preparing datasets for LightGBM model 2")
@@ -241,8 +250,9 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
         early_stopping_rounds=early_stopping_rounds
         )
     
-    adata_rna[train_cell_ids].obsm["X_lgbm_2"] = lgbm_2_predictions[:len(train_cell_ids), :]
-    adata_rna[test_cell_ids].obsm["X_lgbm_2"] = lgbm_2_predictions[len(train_cell_ids):, :]
+
+    adata_rna.obsm["X_lgbm_2"][train_indices] = lgbm_2_predictions[:len(train_cell_ids), :]
+    adata_rna.obsm["X_lgbm_2"][test_indices] = lgbm_2_predictions[len(train_cell_ids):, :]
 
     # cite_lgb_raw_sparse_matrix.ipynb
     logger.info("Training LightGBM model 3 for predicting DSB-normalized protein expression from raw RNA expression")
@@ -257,8 +267,8 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
         early_stopping_rounds=early_stopping_rounds,
     )
 
-    adata_rna[train_cell_ids].obsm["X_lgbm_3"] = lgbm_3_predictions[:len(train_cell_ids), :]
-    adata_rna[test_cell_ids].obsm["X_lgbm_3"] = lgbm_3_predictions[len(train_cell_ids):, :]
+    adata_rna.obsm["X_lgbm_3"][train_indices] = lgbm_3_predictions[:len(train_cell_ids), :]
+    adata_rna.obsm["X_lgbm_3"][test_indices] = lgbm_3_predictions[len(train_cell_ids):, :]
 
     # cite_lgb_raw_target.ipynb
     logger.info("Training LightGBM model 4 for predicting raw protein expression from raw RNA expression")
@@ -273,7 +283,7 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
         early_stopping_rounds=early_stopping_rounds
     )
 
-    adata_rna[train_cell_ids].obsm["X_lgbm_4"] = lgbm_4_predictions[:len(train_cell_ids), :]
-    adata_rna[test_cell_ids].obsm["X_lgbm_4"] = lgbm_4_predictions[len(train_cell_ids):, :]
+    adata_rna.obsm["X_lgbm_4"][train_indices] = lgbm_4_predictions[:len(train_cell_ids), :]
+    adata_rna.obsm["X_lgbm_4"][test_indices] = lgbm_4_predictions[len(train_cell_ids):, :]
 
     return adata_rna
