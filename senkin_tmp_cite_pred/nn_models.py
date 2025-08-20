@@ -240,7 +240,7 @@ def train_nn_models(train_cell_ids, train_cite_X, train_cite_y, test_cell_ids, t
     train_preds_cos = zscore(train_preds_cos)
     train_preds_mse = zscore(train_preds_mse)
     train_preds = train_preds_cos * 0.55 + train_preds_mse * 0.45
-    cv = correlation_score(train_cite_y[:, :3],  train_preds)
+    cv = correlation_score(train_cite_y,  train_preds)
     print ('Blend:', cv)     
 
     test_preds_cos = zscore(test_preds_cos)
