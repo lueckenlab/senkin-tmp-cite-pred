@@ -4,6 +4,8 @@ from sklearn.decomposition import TruncatedSVD
 import lightgbm as lgb
 import logging
 
+from senkin_tmp_cite_pred.metrics import correlation_score
+
 common_lgbm_params = {
     "objective" : "rmse", 
     "metric" : "mse",
@@ -44,33 +46,6 @@ lgbm_params_4 = {
     "lambda_l1":1,
     "lambda_l2":10,
 }
-
-def correlation_score(y_true, y_pred):
-    """Scores the predictions according to the OpenProblems2022 competition rules. 
-    
-    It is assumed that the predictions are not constant.
-
-    Parameters
-    ----------
-    y_true : np.ndarray
-        True target values
-    y_pred : np.ndarray
-        Predicted target values
-
-    Returns
-    -------
-    float
-        Average Pearson correlation coefficient across cells
-    """
-    if type(y_true) == pd.DataFrame: y_true = y_true.values
-    if type(y_pred) == pd.DataFrame: y_pred = y_pred.values
-    
-    corrsum = 0
-
-    for i in range(len(y_true)):
-        corrsum += np.corrcoef(y_true[i], y_pred[i])[1, 0]
-
-    return corrsum / len(y_true)
 
 def train_lightgbm_kfold(train_cite_X, train_cite_y, test_cite_X, folds, params, num_boost_round=10000, early_stopping_rounds=100):
     """Train LightGBM model using k-fold cross validation.
