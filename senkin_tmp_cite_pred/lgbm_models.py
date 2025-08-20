@@ -206,7 +206,7 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
 
     logger.info("Training LightGBM models")
 
-    # cite_lgb_transformed_sparse_matrix.ipynb
+    # Source: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/cite_lgb_transformed_sparse_matrix.ipynb
     logger.info("Training LightGBM model 1 for predicting DSB-normalized protein expression from log-normalized RNA expression")
     lgbm_1_predictions = get_lgbm_predictions(
         adata_rna[train_cell_ids].obsm["X_log_normalized"],
@@ -222,7 +222,7 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
     adata_rna.obsm["X_lgbm_1"][train_indices] = lgbm_1_predictions[:len(train_cell_ids), :]
     adata_rna.obsm["X_lgbm_1"][test_indices] = lgbm_1_predictions[len(train_cell_ids):, :]
 
-    # cite_lgb_raw_clr_pca.ipynb
+    # Source: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/cite_lgb_raw_clr_pca.ipynb
     logger.info("Preparing datasets for LightGBM model 2")
     train_cite_X = np.concatenate([
         adata_rna[train_cell_ids].obsm["X_clr_tsvd"],
@@ -254,7 +254,7 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
     adata_rna.obsm["X_lgbm_2"][train_indices] = lgbm_2_predictions[:len(train_cell_ids), :]
     adata_rna.obsm["X_lgbm_2"][test_indices] = lgbm_2_predictions[len(train_cell_ids):, :]
 
-    # cite_lgb_raw_sparse_matrix.ipynb
+    # Source: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/cite_lgb_raw_sparse_matrix.ipynb
     logger.info("Training LightGBM model 3 for predicting DSB-normalized protein expression from raw RNA expression")
     lgbm_3_predictions = get_lgbm_predictions(
         adata_rna[train_cell_ids].X.toarray(),
@@ -270,7 +270,7 @@ def train_lightgbm_models(adata_rna, adata_prot, train_cell_ids, test_cell_ids, 
     adata_rna.obsm["X_lgbm_3"][train_indices] = lgbm_3_predictions[:len(train_cell_ids), :]
     adata_rna.obsm["X_lgbm_3"][test_indices] = lgbm_3_predictions[len(train_cell_ids):, :]
 
-    # cite_lgb_raw_target.ipynb
+    # Source: https://github.com/senkin13/kaggle/blob/master/Open-Problems-Multimodal-Single-Cell-Integration-2nd-Place-Solution/senkin13/cite_lgb_raw_target.ipynb
     logger.info("Training LightGBM model 4 for predicting raw protein expression from raw RNA expression")
     lgbm_4_predictions = get_lgbm_predictions(
         adata_rna[train_cell_ids].X.toarray(),
