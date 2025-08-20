@@ -251,4 +251,7 @@ def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8),
     adata_rna.obsm["X_raw_selected"] = adata_rna[:, selected_features].X
     logger.info("RNA preprocessing completed")
 
+    mdata.mod["rna"] = adata_rna
+    mdata.mod["prot"] = adata_prot
+
     return mdata
