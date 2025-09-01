@@ -21,13 +21,13 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.train_y = train_y
         self.list_IDs = list_IDs        
         self.shuffle = shuffle
-        self.batch_size = batch_size
+        self.batch_size = min(batch_size, len(list_IDs))
         self.labels = labels
         self.on_epoch_end()
         
     def __len__(self):
         'Denotes the number of batches per epoch'
-        ct = len(self.list_IDs) // self.batch_size
+        ct = (len(self.list_IDs) + self.batch_size - 1) // self.batch_size
         return ct
     
     def __getitem__(self, idx):

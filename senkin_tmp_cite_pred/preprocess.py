@@ -45,6 +45,7 @@ def clr_tsvd(adata, n_components=200):
     X_clr_tsvd : array-like
         A matrix of shape (n_samples, n_components) containing the TSVD-transformed CLR-normalized data.
     """
+    n_components = min(n_components, min(adata.shape) - 1)  # Make sure there are not too many components than the data can fit
     tsvd = TruncatedSVD(n_components=n_components, algorithm="arpack")    
     clr = pt.pp.clr(adata, inplace=False).X
     return tsvd.fit_transform(clr)
@@ -233,7 +234,7 @@ def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8),
     # We validated that they correlate perfectly or very well indeed.
     # Thus, here, we only use PCA with 100 components due to the fact that it is faster.
     logger.info("Computing PCA with 100 components")
-    pca = PCA(n_components = 100, copy = False)
+    pca = PCA(n_components = min(100, min(adata_rna.shape) - 1), copy = False)
     adata_rna.obsm["X_pca_sqrt_norm"] = pca.fit_transform(adata_rna.obsm["X_sqrt_norm"])
 
     logger.info("Verifying observation names match between RNA and protein data")
