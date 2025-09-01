@@ -1,6 +1,6 @@
 [project]
 name = "senkin-tmp-cite-pred"
-version = "0.0.1"
+version = "0.0.2"
 description = "Reimplementation of the model for surface protein prediction from transcriptomics, which won OpenProblems 2022 competition in CITE-seq task"
 authors = [{ name = "Vladimir Shitov", email = "vladimir.shitov@helmholtz-munich.de" }]
 readme = "README.md"
