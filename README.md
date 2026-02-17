@@ -10,13 +10,19 @@ Reimplementation of the model for surface protein prediction from transcriptomic
 
 # Installation
 
-Install from git:
+Create a conda environment and install the package:
 
-`pip install git+https://github.com/lueckenlab/senkin-tmp-cite-pred.git@main`
+```bash
+conda create -n cite_pred python=3.13 -y
+conda activate cite_pred
+pip install git+https://github.com/lueckenlab/senkin-tmp-cite-pred.git@main
+```
 
 # Running the preprocessing and the model
 
-See [exampe.ipynb](./example.ipynb) for a detailed description and an example on how to run the model.
+See [example.ipynb](./example.ipynb) for a detailed description and an example on how to run the model.
+
+See [open_problems_example.ipynb](./open_problems_example.ipynb) to see how to run the model with OpenProblems data format.
 
 - **Github repository**: <https://github.com/lueckenlab/senkin-tmp-cite-pred/>
 
