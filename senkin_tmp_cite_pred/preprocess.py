@@ -4,7 +4,7 @@ import numpy as np
 import scanpy as sc
 from sklearn.decomposition import TruncatedSVD, PCA
 from muon import prot as pt
-from scanpy.pp._utils import _get_mean_var
+from fast_array_utils.stats import mean_var as _get_mean_var
 
 
 def pairwise_corr(X, Y):
@@ -65,7 +65,7 @@ def remove_constant_vars(adata):
     adata : AnnotatedData object
         Data with constant variables removed.
     """
-    _, vars = _get_mean_var(adata.X)
+    _, vars = _get_mean_var(adata.X, axis=0)
     non_constant_vars = (vars != 0)
     adata = adata[:, non_constant_vars]
     
@@ -98,7 +98,7 @@ def senkin_normalize(adata, batch_key: str = "day"):
     normalized_data = (adata.X / adata.X.mean(axis=1).reshape(-1, 1)).tocsr()
     normalized_data = normalized_data.sqrt()
 
-    means, vars = _get_mean_var(normalized_data)  # Efficient for different types
+    means, vars = _get_mean_var(normalized_data, axis=0)  # Efficient for different types
     # Convert to Z-scores per column
     normalized_data = (normalized_data - means) / vars
 
