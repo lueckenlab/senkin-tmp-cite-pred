@@ -50,24 +50,27 @@ def log_normalize(adata, target_sum: float = 1e4):
     return sc.pp.log1p(normalized)
 
 
-def clr_tsvd(adata, n_components=200):
+def clr_tsvd(adata, n_components=200, random_state=None):
     """
     Compute TSVD-transform of Centered-log-ratio (CLR)-normalized data.
-    
+
     Parameters
     ----------
     adata : AnnotatedData object
         Data to transform. .X layer will be used, it must contain raw counts.
     n_components : int = 200
         The number of components to keep. Default is 200.
-        
+    random_state : int, optional
+        Seed for the TSVD solver, for reproducible components across runs. Default is
+        None, matching TruncatedSVD's default (non-deterministic with algorithm="arpack").
+
     Returns
     -------
     X_clr_tsvd : array-like
         A matrix of shape (n_samples, n_components) containing the TSVD-transformed CLR-normalized data.
     """
     n_components = min(n_components, min(adata.shape) - 1)  # Make sure there are not too many components than the data can fit
-    tsvd = TruncatedSVD(n_components=n_components, algorithm="arpack")    
+    tsvd = TruncatedSVD(n_components=n_components, algorithm="arpack", random_state=random_state)
     clr = pt.pp.clr(adata, inplace=False).X
     return tsvd.fit_transform(clr)
 
