@@ -29,6 +29,27 @@ def pairwise_corr(X, Y):
     return X.T @ Y / X.shape[0]
 
 
+def log_normalize(adata, target_sum: float = 1e4):
+    """
+    Normalize total counts per cell and apply log1p transformation.
+
+    Parameters
+    ----------
+    adata : AnnotatedData object
+        Data to transform. .X layer will be used, it must contain raw counts.
+    target_sum : float, optional
+        Total count each cell is normalized to before log1p. Default is 1e4 (CP10K).
+        Pass `None` to normalize to the median total count across cells instead.
+
+    Returns
+    -------
+    X_log_normalized : array-like
+        A matrix of shape (n_samples, n_features) containing the log-normalized data.
+    """
+    normalized = sc.pp.normalize_total(adata, target_sum=target_sum, inplace=False)["X"]
+    return sc.pp.log1p(normalized)
+
+
 def clr_tsvd(adata, n_components=200):
     """
     Compute TSVD-transform of Centered-log-ratio (CLR)-normalized data.
@@ -217,8 +238,7 @@ def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8),
 
     # This is the transformation used in the competition.
     logger.info("Normalization and log1p-transformation")
-    adata_rna.obsm["X_log_normalized"] = sc.pp.normalize_total(adata_rna, target_sum=None, inplace=False)["X"]
-    sc.pp.log1p(adata_rna, obsm="X_log_normalized")
+    adata_rna.obsm["X_log_normalized"] = log_normalize(adata_rna, target_sum=None)
 
     logger.info("Removing constant variables")
     adata_rna = remove_constant_vars(adata_rna)
