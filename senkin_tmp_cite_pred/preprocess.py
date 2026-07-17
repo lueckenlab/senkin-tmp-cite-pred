@@ -2,9 +2,9 @@ import logging
 
 import numpy as np
 import scanpy as sc
-from sklearn.decomposition import TruncatedSVD, PCA
-from muon import prot as pt
 from fast_array_utils.stats import mean_var as _get_mean_var
+from muon import prot as pt
+from sklearn.decomposition import PCA, TruncatedSVD
 
 
 def pairwise_corr(X, Y):
@@ -29,7 +29,7 @@ def pairwise_corr(X, Y):
     return X.T @ Y / X.shape[0]
 
 
-def log_normalize(adata, target_sum: float = 1e4):
+def log_normalize(adata, target_sum: float | None = 1e4):
     """
     Normalize total counts per cell and apply log1p transformation.
 
@@ -92,7 +92,7 @@ def remove_constant_vars(adata):
     _, vars = _get_mean_var(adata.X, axis=0)
     non_constant_vars = (vars != 0)
     adata = adata[:, non_constant_vars]
-    
+
     return adata.copy()
 
 
@@ -236,7 +236,7 @@ def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8),
     adata_prot = mdata.mod["prot"]
 
     logger.debug(f"Number of cells after DSB: {mdata.shape[0]}")
-    
+
     logger.info("Starting RNA preprocessing")
 
     # This is the transformation used in the competition.
@@ -264,14 +264,14 @@ def preprocess_data(mdata, empty_counts_range: tuple[float, float] = (1.5, 2.8),
     assert (adata_rna.obs_names == adata_prot.obs_names).all()
 
     logger.info("Selecting features based on known proteins and correlations")
-    
+
     top_corr_genes = get_top_correlated_features(adata_rna, adata_prot, group_key=group_key, quantile_threshold=0.1, top_n=10)
     logger.info(f"Found {len(top_corr_genes)} top correlated genes")
-    
+
     selected_features = list(set(top_corr_genes) | set(known_features))
     logger.info(f"Total {len(selected_features)} features selected")
     adata_rna.uns["selected_features"] = selected_features
-    
+
     adata_rna.obsm["X_raw_selected"] = adata_rna[:, selected_features].X
     logger.info("RNA preprocessing completed")
 
