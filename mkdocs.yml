@@ -1,7 +1,7 @@
 site_name: senkin-tmp-cite-pred
 repo_url: https://github.com/lueckenlab/senkin-tmp-cite-pred
 site_url: https://VladimirShitov.github.io/senkin-tmp-cite-pred
-site_description: project_description [This is a template repository for Python projects that use uv for their dependency management.]: Reimplementation of the model for CITE-seq data prediction from transcriptomics, which won OpenProblems 2022 competition in CITE-seq tassk
+site_description: Reimplementation of the model for CITE-seq data prediction from transcriptomics, which won OpenProblems 2022 competition in CITE-seq task
 site_author: Vladimir Shitov
 edit_uri: edit/main/docs/
 repo_name: VladimirShitov/senkin-tmp-cite-pred
