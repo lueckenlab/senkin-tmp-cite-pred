@@ -4,6 +4,7 @@ import numpy as np
 import scanpy as sc
 from fast_array_utils.stats import mean_var as _get_mean_var
 from muon import prot as pt
+from scipy.sparse import issparse
 from sklearn.decomposition import PCA, TruncatedSVD
 
 
@@ -167,17 +168,33 @@ def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor",
         prot_row_scaled = prot_row_scaled.toarray()
     prot_row_scaled = (prot_row_scaled - prot_row_scaled.mean(axis=1).reshape(-1, 1)) / prot_row_scaled.std(axis=1).reshape(-1, 1)
 
-    n_groups, n_genes, n_proteins = adata_rna.obs[group_key].nunique(), adata_rna.shape[1], adata_prot.shape[1]
+    n_genes, n_proteins = adata_rna.shape[1], adata_prot.shape[1]
 
-    corr_matrices = np.zeros((n_groups, n_genes, n_proteins))
+    group_masks = [
+        (adata_rna.obs[group_key] == group).values
+        for group in adata_rna.obs[group_key].unique()
+    ]
+    n_groups = len(group_masks)
 
-    for i, group in enumerate(adata_rna.obs[group_key].unique()):
-        group_mask = (adata_rna.obs[group_key] == group).values
-        X = adata_rna.X[group_mask].toarray()
-        Y = prot_row_scaled[group_mask]
-        corr_matrices[i] = pairwise_corr(X, Y)
+    # Compute the per-group gene-protein correlations in gene chunks and reduce each chunk
+    # to its across-group quantile immediately, so the full (n_groups, n_genes, n_proteins)
+    # array is never materialized. On whole-transcriptome inputs that dense float64 array is
+    # hundreds of GB (e.g. 15 x 22k x 140 x 8 B ~= 370 GB) and OOMs. pairwise_corr standardizes
+    # each gene (column) independently, so chunking genes gives identical results.
+    gene_chunk_size = 2000
+    X_by_gene = adata_rna.X.tocsc() if issparse(adata_rna.X) else adata_rna.X
+    per_group_corr_quantile = np.empty((n_genes, n_proteins))
 
-    per_group_corr_quantile = np.nanquantile(corr_matrices, q=quantile_threshold, axis=0)
+    for start in range(0, n_genes, gene_chunk_size):
+        end = min(start + gene_chunk_size, n_genes)
+        X_chunk = X_by_gene[:, start:end]
+        X_chunk = X_chunk.tocsr() if issparse(X_chunk) else X_chunk
+        corr_chunk = np.zeros((n_groups, end - start, n_proteins))
+        for i, group_mask in enumerate(group_masks):
+            Xg = X_chunk[group_mask]
+            Xg = Xg.toarray() if issparse(Xg) else np.asarray(Xg)
+            corr_chunk[i] = pairwise_corr(Xg, prot_row_scaled[group_mask])
+        per_group_corr_quantile[start:end] = np.nanquantile(corr_chunk, q=quantile_threshold, axis=0)
 
     top_corr_genes = set()
 
