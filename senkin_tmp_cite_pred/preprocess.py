@@ -137,7 +137,7 @@ def senkin_normalize(adata, batch_key: str = "day"):
     return normalized_data
 
 
-def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor", quantile_threshold: float = 0.1, top_n: int = 10):
+def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor", quantile_threshold: float = 0.1, top_n: int = 10, gene_chunk_size: int = 2000):
     """
     Get list of top correlated genes for target proteins
 
@@ -156,6 +156,11 @@ def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor",
     top_n : int = 10
         The number of top correlated genes to return. Note that the resulted number will likely be less
         than number of proteins * `top_n` because some of correlated genes overlap between proteins.
+    gene_chunk_size : int = 2000
+        Number of genes processed at a time. The per-group gene-protein correlations are computed and
+        reduced to their across-group quantile one chunk at a time, so the full
+        (n_groups, n_genes, n_proteins) array is never materialized. Purely a memory/speed knob; the
+        result is identical for any chunk size (including a single chunk covering all genes).
 
     Returns
     -------
@@ -181,7 +186,6 @@ def get_top_correlated_features(adata_rna, adata_prot, group_key: str = "donor",
     # array is never materialized. On whole-transcriptome inputs that dense float64 array is
     # hundreds of GB (e.g. 15 x 22k x 140 x 8 B ~= 370 GB) and OOMs. pairwise_corr standardizes
     # each gene (column) independently, so chunking genes gives identical results.
-    gene_chunk_size = 2000
     X_by_gene = adata_rna.X.tocsc() if issparse(adata_rna.X) else adata_rna.X
     per_group_corr_quantile = np.empty((n_genes, n_proteins))
 
