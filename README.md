@@ -18,6 +18,14 @@ conda activate cite_pred
 pip install git+https://github.com/lueckenlab/senkin-tmp-cite-pred.git@main
 ```
 
+# Faithfulness to the original solution
+
+Version 0.2.0 fixes several deviations from the original pipeline (see [CHANGELOG.md](./CHANGELOG.md)). The
+preprocessing was validated against the feature matrices of the original solution computed from the competition
+raw counts: the CLR-TSVD components, the custom normalization with its TSVD/PCA components, and the selected
+correlated genes are reproduced. Remember that the neural networks expect every feature block to be z-scored per
+cell, which `senkin_tmp_cite_pred.nn_models.prepare_nn_inputs` does for you.
+
 # Running the preprocessing and the model
 
 See [example.ipynb](./example.ipynb) for a detailed description and an example on how to run the model.
