@@ -185,3 +185,24 @@ def test_get_top_correlated_features_single_group_and_x(rng):
     result = get_top_correlated_features(adata_rna, adata_prot, group_key=None, top_n=1, rna_key=None, prot_key=None)
     assert "0" in result
     assert len(result) <= n_proteins
+
+
+def test_get_top_correlated_features_ignores_cells_with_constant_proteins(rng):
+    n_cells, n_genes, n_proteins = 300, 40, 4
+    protein = rng.normal(size=(n_cells, n_proteins))
+    rna = rng.normal(size=(n_cells, n_genes))
+    rna[:, :n_proteins] += 2 * protein
+    groups = rng.choice(["g1", "g2"], size=n_cells)
+    obs = pd.DataFrame({"group": groups}, index=[f"c{i}" for i in range(n_cells)])
+    adata_rna = ad.AnnData(X=rna, obs=obs)
+    adata_prot = ad.AnnData(X=protein.copy(), obs=obs.copy())
+    expected = get_top_correlated_features(adata_rna, adata_prot, group_key="group", top_n=2, rna_key=None, prot_key=None)
+
+    # cells without any protein signal (e.g. zero counts) must not turn every correlation into NaN
+    protein_with_empty_cells = protein.copy()
+    protein_with_empty_cells[:5] = 0
+    adata_prot_empty = ad.AnnData(X=protein_with_empty_cells, obs=obs.copy())
+    result = get_top_correlated_features(adata_rna, adata_prot_empty, group_key="group", top_n=2, rna_key=None, prot_key=None)
+
+    assert len(result) > 0
+    assert set(result) & set(expected)

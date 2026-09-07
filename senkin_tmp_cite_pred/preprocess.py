@@ -254,9 +254,16 @@ def get_top_correlated_features(
     assert adata_rna.n_obs == adata_prot.n_obs, "RNA and protein data must have the same cells"
 
     prot_row_scaled = to_dense(get_matrix(adata_prot, prot_key), dtype=np.float64)
-    prot_row_scaled = (prot_row_scaled - prot_row_scaled.mean(axis=1, keepdims=True)) / prot_row_scaled.std(
-        axis=1, keepdims=True
-    )
+    prot_row_std = prot_row_scaled.std(axis=1, keepdims=True)
+    # A cell with a constant protein vector (e.g. no protein counts at all) has no correlation with anything and
+    # would turn every correlation of its group into NaN. Such cells are ignored.
+    informative_cells = prot_row_std[:, 0] > 0
+    if not informative_cells.all():
+        logger.warning(
+            f"{int((~informative_cells).sum())} cells have a constant protein vector and are ignored for the correlations"
+        )
+        prot_row_std[~informative_cells] = 1
+    prot_row_scaled = (prot_row_scaled - prot_row_scaled.mean(axis=1, keepdims=True)) / prot_row_std
 
     rna = get_matrix(adata_rna, rna_key)
     if sparse.issparse(rna):
@@ -266,7 +273,8 @@ def get_top_correlated_features(
         groups = np.zeros(adata_rna.n_obs, dtype=int)
     else:
         groups = adata_rna.obs[group_key].astype(str).values
-    group_masks = [groups == group for group in np.unique(groups)]
+    group_masks = [(groups == group) & informative_cells for group in np.unique(groups)]
+    group_masks = [mask for mask in group_masks if mask.sum() > 1]
 
     n_genes, n_proteins = adata_rna.n_vars, adata_prot.n_vars
     per_group_corr_quantile = np.full((n_genes, n_proteins), np.nan)
@@ -290,6 +298,9 @@ def get_top_correlated_features(
         valid_genes = np.flatnonzero(~np.isnan(quantiles))
         top_genes = valid_genes[np.argsort(-quantiles[valid_genes], kind="stable")[:top_n]]
         top_corr_genes.update(adata_rna.var_names[top_genes])
+
+    if not top_corr_genes:
+        logger.warning("No correlated genes selected: every gene has an undefined correlation in some group")
 
     return sorted(top_corr_genes)
 
