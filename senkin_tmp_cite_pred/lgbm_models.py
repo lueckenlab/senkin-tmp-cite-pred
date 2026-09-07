@@ -1,4 +1,5 @@
 import logging
+import time
 
 import lightgbm as lgb
 import numpy as np
@@ -182,6 +183,7 @@ def get_lgbm_predictions(
 
     fold_datasets = _build_fold_datasets(train_cite_X, folds, params)
 
+    start_time = time.time()
     for i in range(n_targets):
         logger.debug(f"Training LightGBM model for target {i}")
 
@@ -194,6 +196,9 @@ def get_lgbm_predictions(
             num_boost_round=num_boost_round,
             early_stopping_rounds=early_stopping_rounds,
         )
+        if (i + 1) % 10 == 0 or i + 1 == n_targets:
+            elapsed = time.time() - start_time
+            logger.info(f"{i + 1}/{n_targets} targets done in {elapsed / 60:.1f} min ({elapsed / (i + 1):.1f} s per target)")
 
     if n_targets > 1:
         cv = correlation_score(train_cite_y, train_preds)
