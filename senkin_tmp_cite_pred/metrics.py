@@ -25,7 +25,8 @@ def cosine_similarity_loss(y_true, y_pred):
 def correlation_score(y_true, y_pred):
     """Scores the predictions according to the OpenProblems2022 competition rules.
 
-    It is assumed that the predictions are not constant.
+    Cells whose true or predicted vector is constant (e.g. cells without any protein counts) have an undefined
+    correlation and are left out of the average instead of turning it into NaN.
 
     Parameters
     ----------
@@ -39,14 +40,14 @@ def correlation_score(y_true, y_pred):
     float
         Average Pearson correlation coefficient across cells
     """
-    if type(y_true) == pd.DataFrame:
-        y_true = y_true.values
-    if type(y_pred) == pd.DataFrame:
-        y_pred = y_pred.values
+    y_true = np.asarray(y_true.values if isinstance(y_true, pd.DataFrame) else y_true, dtype=np.float64)
+    y_pred = np.asarray(y_pred.values if isinstance(y_pred, pd.DataFrame) else y_pred, dtype=np.float64)
 
-    corrsum = 0
+    true_centered = y_true - y_true.mean(axis=1, keepdims=True)
+    pred_centered = y_pred - y_pred.mean(axis=1, keepdims=True)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        correlations = (true_centered * pred_centered).sum(axis=1) / np.sqrt(
+            (true_centered**2).sum(axis=1) * (pred_centered**2).sum(axis=1)
+        )
 
-    for i in range(len(y_true)):
-        corrsum += np.corrcoef(y_true[i], y_pred[i])[1, 0]
-
-    return corrsum / len(y_true)
+    return float(np.nanmean(correlations))

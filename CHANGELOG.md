@@ -27,7 +27,8 @@ it in several places, which is why their results did not match the original mode
   no longer need hundreds of GB.
 - The neural network inputs were not z-scored. In the original every feature block (CLR-TSVD, selected raw genes,
   normalized TSVD/PCA, LightGBM predictions) is z-scored per cell before concatenation; use `prepare_nn_inputs`.
-- `zscore` returns 0 instead of NaN for constant rows.
+- `zscore` returns 0 instead of NaN for constant rows; `correlation_score` leaves cells with a constant true or
+  predicted vector out of the average instead of returning NaN.
 - Adam's `epsilon` for the cosine model is `1e-7` (the Keras 2 default the original relied on) instead of `1e-9`.
 - `log_normalize` defaults to counts per million (`target_sum=1e6`), which is how the 2022 competition inputs
   were normalized. `preprocess_data` uses it.

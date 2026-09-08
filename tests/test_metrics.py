@@ -33,3 +33,17 @@ def test_cosine_similarity_loss_finite_gradient_for_constant_prediction(rng):
     assert np.isfinite(float(loss))
     assert np.isfinite(grad.numpy()).all()
     assert np.abs(grad.numpy()).max() < 1e4
+
+
+def test_correlation_score_matches_corrcoef_and_skips_constant_cells(rng):
+    y_true = rng.normal(size=(20, 30))
+    y_pred = y_true + rng.normal(scale=0.5, size=(20, 30))
+    expected = np.mean([np.corrcoef(y_true[i], y_pred[i])[0, 1] for i in range(20)])
+    assert abs(correlation_score(y_true, y_pred) - expected) < 1e-12
+
+    y_true_with_empty_cell = y_true.copy()
+    y_true_with_empty_cell[0] = 0  # a cell without any protein signal
+    expected_without = np.mean([np.corrcoef(y_true[i], y_pred[i])[0, 1] for i in range(1, 20)])
+    result = correlation_score(y_true_with_empty_cell, y_pred)
+    assert np.isfinite(result)
+    assert abs(result - expected_without) < 1e-12
