@@ -166,7 +166,7 @@ def test_get_top_correlated_features_matches_original_notebook(rng):
 
     expected = _reference_top_correlated_features(rna, protein, groups, gene_names, protein_names, top_n=5)
     result = get_top_correlated_features(
-        adata_rna, adata_prot, group_key="group", top_n=5, rna_key="X_log_normalized", prot_key="dsb", chunk_size=16
+        adata_rna, adata_prot, group_key="group", top_n=5, rna_key="X_log_normalized", prot_key="dsb", gene_chunk_size=16
     )
 
     assert result == expected

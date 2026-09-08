@@ -209,7 +209,7 @@ def get_top_correlated_features(
     top_n: int = 10,
     rna_key: str | None = "X_log_normalized",
     prot_key: str | None = "dsb",
-    chunk_size: int = 2000,
+    gene_chunk_size: int = 2000,
 ):
     """
     Get list of top correlated genes for target proteins
@@ -242,8 +242,11 @@ def get_top_correlated_features(
     prot_key : str, optional
         Where to take the protein expression from (see `get_matrix`). The original solution used
         DSB-normalized proteins.
-    chunk_size : int = 2000
-        Number of genes processed at once. Only affects memory consumption.
+    gene_chunk_size : int = 2000
+        Number of genes processed at a time. The per-group gene-protein correlations are computed and reduced to
+        their across-group quantile one chunk at a time, so the full (n_groups, n_genes, n_proteins) array is
+        never materialized (hundreds of GB on whole-transcriptome inputs). Purely a memory/speed knob: the result
+        is identical for any chunk size.
 
     Returns
     -------
@@ -279,8 +282,8 @@ def get_top_correlated_features(
     n_genes, n_proteins = adata_rna.n_vars, adata_prot.n_vars
     per_group_corr_quantile = np.full((n_genes, n_proteins), np.nan)
 
-    for start in range(0, n_genes, chunk_size):
-        stop = min(start + chunk_size, n_genes)
+    for start in range(0, n_genes, gene_chunk_size):
+        stop = min(start + gene_chunk_size, n_genes)
         rna_chunk = to_dense(rna[:, start:stop], dtype=np.float64)
 
         corr_matrices = np.empty((len(group_masks), stop - start, n_proteins))

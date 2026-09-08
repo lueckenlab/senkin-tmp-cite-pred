@@ -23,7 +23,8 @@ it in several places, which is why their results did not match the original mode
   log-normalized inputs; the matrix is now selected with `rna_key` (default `"X_log_normalized"`) and the protein
   matrix with `prot_key` (default `"dsb"`). Genes with an undefined correlation in any group (e.g. not expressed in
   a donor) were ranked first by `argsort` (NaN sorts last) and hence *selected*; they are now excluded as in the
-  original. Correlations are computed in gene chunks, so whole-transcriptome inputs no longer need hundreds of GB.
+  original. Correlations are computed in gene chunks (`gene_chunk_size`, from #4), so whole-transcriptome inputs
+  no longer need hundreds of GB.
 - The neural network inputs were not z-scored. In the original every feature block (CLR-TSVD, selected raw genes,
   normalized TSVD/PCA, LightGBM predictions) is z-scored per cell before concatenation; use `prepare_nn_inputs`.
 - `zscore` returns 0 instead of NaN for constant rows.
