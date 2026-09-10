@@ -3,6 +3,7 @@
 The correlations are computed in gene chunks to bound memory. gene_chunk_size is a
 pure memory/speed knob: the result must be identical for any chunk size, including a
 single chunk that covers all genes (the original whole-array behaviour).
+The RNA matrix of these fixtures is in .X, hence rna_key=None.
 """
 
 import anndata as ad
@@ -65,6 +66,7 @@ def test_result_is_chunk_size_invariant(gene_chunk_size):
             group_key="donor",
             quantile_threshold=0.1,
             top_n=10,
+            rna_key=None,
             gene_chunk_size=gene_chunk_size,
         )
     )
@@ -74,7 +76,7 @@ def test_result_is_chunk_size_invariant(gene_chunk_size):
 def test_single_chunk_matches_many_chunks():
     """One chunk covering all genes and one-gene-per-chunk agree exactly."""
     adata_rna, adata_prot = _make_data(seed=1)
-    kwargs = dict(group_key="donor", quantile_threshold=0.25, top_n=5)
+    kwargs = dict(group_key="donor", quantile_threshold=0.25, top_n=5, rna_key=None)
     full = set(get_top_correlated_features(adata_rna, adata_prot, gene_chunk_size=10_000, **kwargs))
     per_gene = set(get_top_correlated_features(adata_rna, adata_prot, gene_chunk_size=1, **kwargs))
     assert full == per_gene
@@ -84,15 +86,15 @@ def test_default_matches_reference():
     """The default chunk size reproduces the whole-array reference."""
     adata_rna, adata_prot = _make_data(seed=2)
     expected = _reference(adata_rna, adata_prot, "donor", 0.1, 10)
-    result = set(get_top_correlated_features(adata_rna, adata_prot, group_key="donor"))
+    result = set(get_top_correlated_features(adata_rna, adata_prot, group_key="donor", rna_key=None))
     assert result == expected
 
 
 def test_accepts_dense_rna():
     """A dense adata_rna.X gives the same result as the sparse case."""
     adata_rna, adata_prot = _make_data(seed=3)
-    sparse_res = set(get_top_correlated_features(adata_rna, adata_prot, group_key="donor", gene_chunk_size=8))
+    sparse_res = set(get_top_correlated_features(adata_rna, adata_prot, group_key="donor", rna_key=None, gene_chunk_size=8))
     adata_dense = adata_rna.copy()
     adata_dense.X = adata_rna.X.toarray()
-    dense_res = set(get_top_correlated_features(adata_dense, adata_prot, group_key="donor", gene_chunk_size=8))
+    dense_res = set(get_top_correlated_features(adata_dense, adata_prot, group_key="donor", rna_key=None, gene_chunk_size=8))
     assert sparse_res == dense_res
