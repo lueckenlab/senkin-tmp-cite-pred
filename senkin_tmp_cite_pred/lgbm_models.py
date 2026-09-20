@@ -203,7 +203,8 @@ def _worker_layout(n_jobs, total_threads, memory_budget_gb, train_cite_X, binned
         (os.path.getsize(train_path) + os.path.getsize(valid_path)) / 1e9 for train_path, valid_path in binned_paths
     )
     largest_valid_gb = max(_matrix_bytes(train_cite_X[valid_idx]) / 1e9 for _, valid_idx in splits)
-    worker_gb = 0.75 + 1.5 * largest_fold_gb + largest_valid_gb
+    # measured on the NeurIPS 2022 CITE inputs: 4.2 GB private per worker for a 0.8 GB binary fold and a 1.2 GB slice
+    worker_gb = 1.0 + 2.5 * largest_fold_gb + largest_valid_gb
     reserved_gb = _process_rss_gb() + _matrix_bytes(train_cite_X) / 1e9
     affordable = max(1, int((memory_budget_gb - reserved_gb) // worker_gb))
     logger.info(
