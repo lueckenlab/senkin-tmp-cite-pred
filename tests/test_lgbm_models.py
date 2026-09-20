@@ -55,6 +55,7 @@ def test_reused_fold_datasets_give_identical_models(rng):
 
 @pytest.mark.parametrize("n_jobs", [2, 3, -1])
 def test_parallel_targets_match_serial(rng, n_jobs):
+    """Workers load the folds from binary datasets saved by the parent; models must be identical to the serial path."""
     train_X, train_y, test_X = _data(rng, as_sparse=True, n_targets=5)
     folds = KFold(n_splits=3, shuffle=True, random_state=0)
     params = {**PARAMS, "num_threads": 3}
@@ -64,6 +65,27 @@ def test_parallel_targets_match_serial(rng, n_jobs):
 
     for serial_part, parallel_part in zip(serial, parallel):
         np.testing.assert_allclose(parallel_part, serial_part, rtol=1e-6)
+
+
+def test_memory_budget_caps_workers(rng, caplog):
+    train_X, train_y, test_X = _data(rng, as_sparse=True, n_targets=4)
+    folds = KFold(n_splits=2, shuffle=True, random_state=0)
+    params = {**PARAMS, "num_threads": 4}
+
+    serial = train_lightgbm_kfold(train_X, train_y, test_X, folds, params, 20, 5, n_jobs=1)
+    with caplog.at_level("INFO"):
+        # a budget that fits the parent process plus about one worker
+        budget = 0.75 + 0.5 + resource_peak_gb()
+        capped = train_lightgbm_kfold(train_X, train_y, test_X, folds, params, 20, 5, n_jobs=4, memory_budget_gb=budget)
+    assert "Reducing the number of worker processes" in caplog.text
+    for serial_part, capped_part in zip(serial, capped):
+        np.testing.assert_allclose(capped_part, serial_part, rtol=1e-6)
+
+
+def resource_peak_gb():
+    import resource
+
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
 
 
 def test_get_lgbm_predictions_shapes_sparse_and_dense_agree(rng):
