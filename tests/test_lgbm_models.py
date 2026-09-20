@@ -77,7 +77,7 @@ def test_memory_budget_caps_workers(rng, caplog):
         # a budget that fits the parent process plus about one worker
         budget = 0.75 + 0.5 + resource_peak_gb()
         capped = train_lightgbm_kfold(train_X, train_y, test_X, folds, params, 20, 5, n_jobs=4, memory_budget_gb=budget)
-    assert "Reducing the number of worker processes" in caplog.text
+    assert "to stay within the memory budget" in caplog.text
     for serial_part, capped_part in zip(serial, capped):
         np.testing.assert_allclose(capped_part, serial_part, rtol=1e-6)
 

@@ -177,28 +177,44 @@ def _matrix_bytes(matrix):
     return np.asarray(matrix).nbytes
 
 
-def _process_peak_rss_gb():
-    peak_kb = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-    return peak_kb / 1e6
+def _process_rss_gb():
+    """Resident memory of this process right now (Linux); falls back to the peak elsewhere."""
+    try:
+        with open("/proc/self/statm") as statm:
+            resident_pages = int(statm.read().split()[1])
+        return resident_pages * os.sysconf("SC_PAGE_SIZE") / 1e9
+    except (OSError, ValueError, IndexError):
+        return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1e6
 
 
-def _memory_safe_n_jobs(n_jobs, memory_budget_gb, train_cite_X, binned_paths, splits):
-    """Cap the number of worker processes so that the parent's peak memory, the shared copy of the feature matrix
-    and every worker's binned fold plus validation slice fit `memory_budget_gb`."""
+def _worker_layout(n_jobs, total_threads, memory_budget_gb, train_cite_X, binned_paths, splits):
+    """Number of worker processes and threads per worker.
+
+    Every worker holds one binned fold (the size of its binary file, which LightGBM keeps roughly as is in memory)
+    plus the validation slice of the feature matrix it predicts on, on top of the parent process and the shared
+    copy of the feature matrix. When `memory_budget_gb` allows fewer workers than threads, the threads are spread
+    over the affordable workers instead of staying idle.
+    """
+    threads_per_worker = max(1, total_threads // n_jobs)
+    if memory_budget_gb is None:
+        return n_jobs, threads_per_worker
+
     largest_fold_gb = max(
         (os.path.getsize(train_path) + os.path.getsize(valid_path)) / 1e9 for train_path, valid_path in binned_paths
     )
     largest_valid_gb = max(_matrix_bytes(train_cite_X[valid_idx]) / 1e9 for _, valid_idx in splits)
-    worker_gb = 0.75 + largest_fold_gb + largest_valid_gb
-    reserved_gb = _process_peak_rss_gb() + _matrix_bytes(train_cite_X) / 1e9
-    affordable = int((memory_budget_gb - reserved_gb) // worker_gb)
+    worker_gb = 0.75 + 1.5 * largest_fold_gb + largest_valid_gb
+    reserved_gb = _process_rss_gb() + _matrix_bytes(train_cite_X) / 1e9
+    affordable = max(1, int((memory_budget_gb - reserved_gb) // worker_gb))
     logger.info(
-        f"Memory budget {memory_budget_gb:.0f} GB: parent peak + shared inputs {reserved_gb:.1f} GB, "
+        f"Memory budget {memory_budget_gb:.0f} GB: parent + shared inputs {reserved_gb:.1f} GB, "
         f"{worker_gb:.1f} GB per worker -> at most {affordable} worker(s)"
     )
     if affordable < n_jobs:
-        logger.info(f"Reducing the number of worker processes from {n_jobs} to {max(1, affordable)}")
-    return max(1, min(n_jobs, affordable))
+        threads_per_worker = -(-total_threads // affordable)  # ceil
+        n_jobs = min(affordable, max(1, total_threads // threads_per_worker))
+        logger.info(f"Using {n_jobs} worker(s) x {threads_per_worker} thread(s) to stay within the memory budget")
+    return n_jobs, threads_per_worker
 
 
 def train_lightgbm_kfold(
@@ -299,9 +315,8 @@ def train_lightgbm_kfold(
 
     with tempfile.TemporaryDirectory(prefix="lgbm_folds_") as directory:
         binned_paths = _save_binned_folds(train_cite_X, splits, {**params, "num_threads": total_threads}, directory)
-        if memory_budget_gb is not None:
-            n_jobs = _memory_safe_n_jobs(n_jobs, memory_budget_gb, train_cite_X, binned_paths, splits)
-        worker_params = {**params, "num_threads": max(1, total_threads // n_jobs)}
+        n_jobs, threads_per_worker = _worker_layout(n_jobs, total_threads, memory_budget_gb, train_cite_X, binned_paths, splits)
+        worker_params = {**params, "num_threads": threads_per_worker}
 
         target_chunks = [chunk for chunk in np.array_split(np.arange(n_targets), n_jobs) if len(chunk)]
         tasks = [(fold, chunk) for fold in range(len(splits)) for chunk in target_chunks]
