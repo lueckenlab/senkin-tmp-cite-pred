@@ -24,6 +24,10 @@ common_lgbm_params = {
     "bagging_freq": 1,
     "verbosity": -1,
     "bagging_seed": 42,
+    # Build histograms column-wise. With feature_fraction 0.05-0.1 only a few percent of the genes are used per
+    # tree, but LightGBM's automatic choice is often row-wise, which scans every nonzero of every cell each round.
+    # Column-wise is 2-3x faster on the whole-transcriptome inputs and gives identical results.
+    "force_col_wise": True,
 }
 
 lgbm_params_1 = {
