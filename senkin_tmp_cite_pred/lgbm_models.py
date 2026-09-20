@@ -190,10 +190,10 @@ def _process_rss_gb():
 def _worker_layout(n_jobs, total_threads, memory_budget_gb, train_cite_X, binned_paths, splits):
     """Number of worker processes and threads per worker.
 
-    Every worker holds one binned fold (the size of its binary file, which LightGBM keeps roughly as is in memory)
-    plus the validation slice of the feature matrix it predicts on, on top of the parent process and the shared
-    copy of the feature matrix. When `memory_budget_gb` allows fewer workers than threads, the threads are spread
-    over the affordable workers instead of staying idle.
+    Every worker holds one binned fold plus the validation slice of the feature matrix it predicts on, on top of
+    the parent process and the shared copy of the feature matrix. When `memory_budget_gb` allows fewer workers
+    than threads, the affordable number of single-thread workers is used: on these inputs a second LightGBM thread
+    per worker brings no speed-up, so fewer workers with more threads would only be slower.
     """
     threads_per_worker = max(1, total_threads // n_jobs)
     if memory_budget_gb is None:
@@ -212,8 +212,8 @@ def _worker_layout(n_jobs, total_threads, memory_budget_gb, train_cite_X, binned
         f"{worker_gb:.1f} GB per worker -> at most {affordable} worker(s)"
     )
     if affordable < n_jobs:
-        threads_per_worker = -(-total_threads // affordable)  # ceil
-        n_jobs = min(affordable, max(1, total_threads // threads_per_worker))
+        n_jobs = affordable
+        threads_per_worker = max(1, total_threads // n_jobs)
         logger.info(f"Using {n_jobs} worker(s) x {threads_per_worker} thread(s) to stay within the memory budget")
     return n_jobs, threads_per_worker
 
