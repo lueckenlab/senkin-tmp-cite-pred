@@ -8,6 +8,29 @@ and this project adheres to [Semantic Versioning][].
 [keep a changelog]: https://keepachangelog.com/en/1.0.0/
 [semantic versioning]: https://semver.org/spec/v2.0.0.html
 
+## 0.3.0
+
+Speed of the LightGBM stage, which dominates the run time of the pipeline (the original notebooks report 1-2 days
+per LightGBM model). Models are unchanged.
+
+### Added
+
+- `train_lightgbm_kfold`, `get_lgbm_predictions` and `train_lightgbm_models` take `n_jobs`: the work is split into
+  (fold, chunk of targets) tasks run in worker processes with joblib. Every worker bins one fold once and reuses
+  it for its targets, so a worker holds one binned fold, and `num_threads` is divided among the workers. One
+  LightGBM model on tens of thousands of cells parallelizes poorly beyond a few threads, so many single-thread
+  workers use the CPUs several times better than one target at a time with all threads.
+- `train_lightgbm_kfold` handles all targets at once and returns the best iteration of every (fold, target) model;
+  `get_lgbm_predictions` logs their median and maximum.
+- Progress logging per finished task.
+
+### Changed
+
+- `force_col_wise` is set in the common LightGBM parameters: column-wise histogram construction is 2-3x faster per
+  round than LightGBM's automatic choice on whole-transcriptome inputs with small feature fractions, with identical
+  models.
+- `joblib>=1.4` is a dependency.
+
 ## 0.2.0
 
 This release makes the reimplementation match the original senkin13 pipeline. The previous versions deviated from
